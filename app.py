@@ -1,5 +1,6 @@
 import streamlit as st
 import register_student
+import numpy
 
 st.title("Smart Attendance System")
 
