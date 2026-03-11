@@ -1,27 +1,41 @@
 import streamlit as st
 import os
-import mihikansha 
 
 DATASET_DIR = "dataset"
 
+# dataset folder automatically create
 if not os.path.exists(DATASET_DIR):
     os.makedirs(DATASET_DIR)
 
-st.title("Student Registration")
+def show():
 
-name = st.text_input("Student Name")
-roll = st.text_input("Roll Number")
+    st.header("Student Registration")
 
-uploaded_file = st.file_uploader("Upload Student Photo", type=["jpg", "jpeg", "png"])
+    name = st.text_input("Student Name")
+    roll = st.text_input("Roll Number")
 
-if st.button("Register Student"):
-    if name and roll and uploaded_file:
-        filename = f"{name}_{roll}.jpg"
-        path = os.path.join(DATASET_DIR, filename)
+    uploaded_file = st.file_uploader(
+        "Upload Student Photo",
+        type=["jpg","jpeg","png"]
+    )
 
-        with open(path, "wb") as f:
-            f.write(uploaded_file.getbuffer())
+    if st.button("Register Student"):
 
-        st.success(f"Student {name} registered successfully!")
-    else:
-        st.error("Please fill all details and upload photo.")
+        if name and roll and uploaded_file:
+
+            # remove invalid characters from roll
+            roll = roll.replace("/", "_")
+            roll = roll.replace("\\", "_")
+            roll = roll.replace(" ", "_")
+
+            filename = f"{name}_{roll}.jpg"
+
+            path = os.path.join(DATASET_DIR, filename)
+
+            with open(path, "wb") as f:
+                f.write(uploaded_file.getbuffer())
+
+            st.success("Student Registered Successfully ✅")
+
+        else:
+            st.error("Please fill all details and upload photo")
