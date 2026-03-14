@@ -1,29 +1,41 @@
-py -3.10 -m pip listimport streamlit as st
+import streamlit as st
 import pandas as pd
+from datetime import datetime
 import os
 
-st.title("📊 Smart Attendance Dashboard")
+def show():
 
-if not os.path.exists("attendance.csv"):
-    st.warning("No attendance data found")
+    st.subheader("📊 Today Attendance Dashboard")
 
-else:
+    date=datetime.now().strftime("%Y-%m-%d")
+    filename=f"attendance_{date}.csv"
 
-    df = pd.read_csv("attendance.csv")
+    if not os.path.exists(filename):
 
-    st.subheader("Attendance Table")
-    st.dataframe(df)
+        st.warning("⚠ No attendance taken today")
 
-    st.subheader("Student Attendance Count")
+    else:
 
-    # count attendance per student
-    count = df["Name"].value_counts().reset_index()
+        df=pd.read_csv(filename)
 
-    count.columns = ["Student Name", "Attendance Count"]
+        total_students=len(df)
 
-    # show numbers clearly
-    st.table(count)
+        col1,col2=st.columns(2)
 
-    st.subheader("Attendance Graph")
+        with col1:
+            st.metric("Total Present",total_students)
 
-    st.bar_chart(count.set_index("Student Name"))
+        with col2:
+            st.metric("Date",date)
+
+        st.write("### Attendance Table")
+        st.dataframe(df,use_container_width=True)
+
+        st.write("### Attendance Count")
+
+        attendance_count=df["Name"].value_counts().reset_index()
+        attendance_count.columns=["Student Name","Attendance"]
+
+        st.bar_chart(
+        attendance_count.set_index("Student Name")
+        )

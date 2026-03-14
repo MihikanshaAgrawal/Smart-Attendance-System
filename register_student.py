@@ -1,15 +1,10 @@
 import streamlit as st
 import os
-
-DATASET_DIR = "dataset"
-
-# dataset folder automatically create
-if not os.path.exists(DATASET_DIR):
-    os.makedirs(DATASET_DIR)
+import re
 
 def show():
 
-    st.header("Student Registration")
+    st.subheader("👨‍🎓 Register New Student")
 
     name = st.text_input("Student Name")
     roll = st.text_input("Roll Number")
@@ -23,19 +18,20 @@ def show():
 
         if name and roll and uploaded_file:
 
-            # remove invalid characters from roll
-            roll = roll.replace("/", "_")
-            roll = roll.replace("\\", "_")
-            roll = roll.replace(" ", "_")
+            # create dataset folder
+            if not os.path.exists("dataset"):
+                os.makedirs("dataset")
 
-            filename = f"{name}_{roll}.jpg"
+            # remove invalid characters from roll number
+            clean_roll = re.sub(r'[^a-zA-Z0-9]', '_', roll)
 
-            path = os.path.join(DATASET_DIR, filename)
+            filename = f"{name}_{clean_roll}.jpg"
+            path = os.path.join("dataset", filename)
 
             with open(path, "wb") as f:
                 f.write(uploaded_file.getbuffer())
 
-            st.success("Student Registered Successfully ✅")
+            st.success("✅ Student Registered Successfully")
 
         else:
-            st.error("Please fill all details and upload photo")
+            st.error("Please fill all details")
