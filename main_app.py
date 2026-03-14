@@ -1,56 +1,38 @@
 import streamlit as st
+import login
 import register_student
 import selfie_attendance
 import dashboard
+import student_list
+# login state
+if "logged_in" not in st.session_state:
+    st.session_state["logged_in"] = False
 
-st.set_page_config(
-    page_title="Smart Attendance System",
-    page_icon="🎓",
-    layout="wide"
-)
+# LOGIN PAGE
+if not st.session_state["logged_in"]:
+    login.login()
 
-# ---------- CSS ----------
-st.markdown("""
-<style>
+else:
 
-.stApp{
-background: linear-gradient(135deg,#1f4037,#99f2c8);
-}
+    st.sidebar.success(
+        f"Welcome {st.session_state['teacher_name']} ({st.session_state['subject']})"
+    )
 
-h1{
-text-align:center;
-color:white;
-}
+    if st.sidebar.button("Logout"):
+        st.session_state["logged_in"] = False
+        st.rerun()
 
-.block-container{
-padding-top:2rem;
-}
+    menu = ["Dashboard","Register Student","Student List","Selfie Attendance"]
+    choice = st.sidebar.selectbox("Menu", menu)
 
-.card{
-background:white;
-padding:25px;
-border-radius:15px;
-box-shadow:0 8px 20px rgba(0,0,0,0.2);
-}
+    if choice == "Dashboard":
+        dashboard.show()
 
-.sidebar .sidebar-content{
-background:#1c2833;
-}
+    elif choice == "Register Student":
+        register_student.show()
 
-</style>
-""",unsafe_allow_html=True)
-
-st.title("🎓 Smart Attendance System")
-
-menu = ["Register Student","Selfie Attendance","Dashboard"]
-
-choice = st.sidebar.selectbox("Menu",menu)
-
-if choice=="Register Student":
-    register_student.show()
-
-elif choice=="Selfie Attendance":
-    selfie_attendance.show()
-
-elif choice=="Dashboard":
-    dashboard.show()
+    elif choice == "Selfie Attendance":
+        selfie_attendance.show()
+    
+    elif choice == "Student List":
+        student_list.show()

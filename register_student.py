@@ -1,10 +1,12 @@
 import streamlit as st
 import os
 import re
+import face_recognition
+import pickle
 
 def show():
 
-    st.subheader("👨‍🎓 Register New Student")
+    st.header("Register Student")
 
     name = st.text_input("Student Name")
     roll = st.text_input("Roll Number")
@@ -18,11 +20,9 @@ def show():
 
         if name and roll and uploaded_file:
 
-            # create dataset folder
             if not os.path.exists("dataset"):
                 os.makedirs("dataset")
 
-            # remove invalid characters from roll number
             clean_roll = re.sub(r'[^a-zA-Z0-9]', '_', roll)
 
             filename = f"{name}_{clean_roll}.jpg"
@@ -31,7 +31,38 @@ def show():
             with open(path, "wb") as f:
                 f.write(uploaded_file.getbuffer())
 
-            st.success("✅ Student Registered Successfully")
+            st.success("Student Registered")
+
+            # auto encoding
+
+            known_encodings = []
+            known_names = []
+
+            for file in os.listdir("dataset"):
+
+                image = face_recognition.load_image_file(
+                    os.path.join("dataset", file)
+                )
+
+                enc = face_recognition.face_encodings(image)
+
+                if len(enc) > 0:
+
+                    known_encodings.append(enc[0])
+                    known_names.append(os.path.splitext(file)[0])
+
+            data = {
+                "encodings": known_encodings,
+                "names": known_names
+            }
+
+            if not os.path.exists("encodings"):
+                os.makedirs("encodings")
+
+            with open("encodings/faces.pkl", "wb") as f:
+                pickle.dump(data, f)
+
+            st.success("Encoding Updated")
 
         else:
-            st.error("Please fill all details")
+            st.error("Fill all fields")

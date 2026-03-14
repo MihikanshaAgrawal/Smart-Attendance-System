@@ -1,41 +1,71 @@
 import streamlit as st
 import pandas as pd
-from datetime import datetime
 import os
 
 def show():
 
-    st.subheader("📊 Today Attendance Dashboard")
+    subject = st.session_state["subject"]
 
-    date=datetime.now().strftime("%Y-%m-%d")
-    filename=f"attendance_{date}.csv"
+    st.title(f"📊 {subject} Attendance Dashboard")
 
-    if not os.path.exists(filename):
+    folder = f"attendance/{subject}"
 
-        st.warning("⚠ No attendance taken today")
+    if not os.path.exists(folder):
 
-    else:
+        st.warning("No attendance taken yet")
 
-        df=pd.read_csv(filename)
+        return
 
-        total_students=len(df)
+    files = sorted(os.listdir(folder))
 
-        col1,col2=st.columns(2)
+    if len(files) == 0:
 
-        with col1:
-            st.metric("Total Present",total_students)
+        st.warning("No attendance records")
 
-        with col2:
-            st.metric("Date",date)
+        return
 
-        st.write("### Attendance Table")
-        st.dataframe(df,use_container_width=True)
+    # student list
+    students = []
 
-        st.write("### Attendance Count")
+    for file in os.listdir("dataset"):
 
-        attendance_count=df["Name"].value_counts().reset_index()
-        attendance_count.columns=["Student Name","Attendance"]
+        name = os.path.splitext(file)[0]
 
-        st.bar_chart(
-        attendance_count.set_index("Student Name")
-        )
+        students.append(name)
+
+    students = sorted(students)
+
+    table = pd.DataFrame({"Student":students})
+
+    for file in files:
+
+        date = file.replace(".csv","")
+
+        df = pd.read_csv(f"{folder}/{file}")
+
+        present = df["Name"].tolist()
+
+        column = []
+
+        for student in students:
+
+            if student in present:
+                column.append("P")
+            else:
+                column.append("A")
+
+        table[date] = column
+
+    table["Total"] = (table.iloc[:,1:]=="P").sum(axis=1)
+
+    total_days = len(files)
+
+    table["Attendance %"] = (table["Total"]/total_days*100).round(1)
+
+    st.dataframe(table,use_container_width=True)
+
+    st.subheader("📈 Attendance Graph")
+
+    graph = table[["Student","Total"]].set_index("Student")
+
+    st.bar_chart(graph)

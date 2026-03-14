@@ -6,85 +6,96 @@ from datetime import datetime
 import numpy as np
 from PIL import Image
 import os
+import cv2
 
 def show():
 
-    st.subheader("📸 Selfie Attendance")
+    st.header("📸 Selfie Attendance")
 
-    with open("encodings/faces.pkl","rb") as f:
-        data=pickle.load(f)
+    subject = st.session_state["subject"]
 
-    known_encodings=data["encodings"]
-    known_names=data["names"]
+    st.write(f"Subject: **{subject}**")
 
-    col1,col2,col3=st.columns([1,2,1])
+    with open("encodings/faces.pkl", "rb") as f:
+        data = pickle.load(f)
 
-    with col2:
+    known_encodings = data["encodings"]
+    known_names = data["names"]
 
-        uploaded_file=st.file_uploader(
-        "Upload Class Selfie",
-        type=["jpg","jpeg","png"]
-        )
+    uploaded_file = st.file_uploader("Upload Class Selfie", type=["jpg","jpeg","png"])
 
-        if uploaded_file is not None:
+    if uploaded_file is not None:
 
-            image=Image.open(uploaded_file)
-            image_np=np.array(image)
+        image = Image.open(uploaded_file)
+        image_np = np.array(image)
 
-            st.image(image,caption="Uploaded Selfie")
+        face_locations = face_recognition.face_locations(image_np)
+        face_encodings = face_recognition.face_encodings(image_np, face_locations)
 
-            face_locations=face_recognition.face_locations(image_np)
-            face_encodings=face_recognition.face_encodings(image_np,face_locations)
+        present_students = []
 
-            present_students=[]
+        for (top, right, bottom, left), encoding in zip(face_locations, face_encodings):
 
-            for encoding in face_encodings:
+            face_distances = face_recognition.face_distance(known_encodings, encoding)
+            best_match_index = face_distances.argmin()
 
-                face_distances=face_recognition.face_distance(
-                known_encodings,encoding)
+            name = "Unknown"
 
-                best_match_index=face_distances.argmin()
+            if face_distances[best_match_index] < 0.45:
 
-                if face_distances[best_match_index] <0.45:
+                name = known_names[best_match_index]
 
-                    name=known_names[best_match_index]
+                if name not in present_students:
+                    present_students.append(name)
 
-                    if name not in present_students:
-                        present_students.append(name)
+            # draw rectangle
+            cv2.rectangle(image_np,(left,top),(right,bottom),(0,255,0),2)
 
-            if len(present_students)>0:
+            # name label
+            cv2.rectangle(image_np,(left,bottom-30),(right,bottom),(0,255,0),cv2.FILLED)
 
-                st.success("✅ Attendance Marked")
+            cv2.putText(
+                image_np,
+                name,
+                (left+6,bottom-6),
+                cv2.FONT_HERSHEY_SIMPLEX,
+                0.6,
+                (0,0,0),
+                2
+            )
 
-                date=datetime.now().strftime("%Y-%m-%d")
-                time=datetime.now().strftime("%H:%M:%S")
+        st.image(image_np, caption="Detected Faces")
 
-                filename=f"attendance_{date}.csv"
+        if len(present_students) > 0:
 
-                if not os.path.exists(filename):
-                    df=pd.DataFrame(columns=["Name","Time"])
-                    df.to_csv(filename,index=False)
+            st.success("Attendance Marked")
 
-                existing_df=pd.read_csv(filename)
+            date = datetime.now().strftime("%Y-%m-%d")
+            time = datetime.now().strftime("%H:%M:%S")
 
-                for student in present_students:
+            # SUBJECT FOLDER
+            folder = f"attendance/{subject}"
 
-                    if student not in existing_df["Name"].values:
+            os.makedirs(folder, exist_ok=True)
 
-                        df=pd.DataFrame(
-                        [[student,time]],
-                        columns=["Name","Time"]
-                        )
+            filename = f"{folder}/{date}.csv"
 
-                        df.to_csv(
-                        filename,
-                        mode="a",
-                        header=False,
-                        index=False
-                        )
+            if not os.path.exists(filename):
+                df = pd.DataFrame(columns=["Name","Time"])
+                df.to_csv(filename,index=False)
 
-                st.write("### Present Students")
-                st.success(present_students)
+            existing_df = pd.read_csv(filename)
 
-            else:
-                st.warning("No registered student detected")
+            for student in present_students:
+
+                if student not in existing_df["Name"].values:
+
+                    df = pd.DataFrame([[student,time]],columns=["Name","Time"])
+
+                    df.to_csv(filename,mode="a",header=False,index=False)
+
+            st.subheader("Present Students")
+            st.write(present_students)
+
+        else:
+            st.warning("No registered student detected")
